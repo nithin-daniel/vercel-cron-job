@@ -1,0 +1,29 @@
+name: Cron Job - Call APIs every 5 minutes
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  call-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel Cron Endpoint
+        run: |
+          response=$(curl -s -w "\n%{http_code}" -X GET "${{ secrets.VERCEL_CRON_URL }}")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ API call successful"
+          else
+            echo "❌ API call failed"
+            exit 1
+          fi
+        env:
+          VERCEL_CRON_URL: ${{ secrets.VERCEL_CRON_URL }}
